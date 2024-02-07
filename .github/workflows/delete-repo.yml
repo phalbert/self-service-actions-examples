@@ -27,13 +27,13 @@ jobs:
       - name: Delete Repository
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          REPO_NAME: ${{ fromJson(inputs.port_payload).context.runId }}
+          REPO_NAME: ${{ fromJson(inputs.port_payload).context.entity }}
         run: |
           echo $GH_TOKEN
           curl -X DELETE \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
-            "https://api.github.com/repos/${{ inputs.org_name }}/$REPO_NAME"
+            "https://api.github.com/repos/${{ inputs.org_name }}/${{ REPO_NAME }}"
 
       - name: Inform completion of deletion
         uses: port-labs/port-github-action@v1
