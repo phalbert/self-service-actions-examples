@@ -6,6 +6,10 @@ on:
       org_name:
         required: true
         type: string
+      delete_dependents:
+        required: false
+        type: boolean
+        default: false
       port_payload:
         required: true
         type: string
@@ -54,6 +58,7 @@ jobs:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
           clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
           operation: DELETE
+          delete_dependents: ${{ inputs.delete_dependents }}
           identifier: ${{ fromJson(inputs.port_payload).context.entity }}
           blueprint: ${{ fromJson(inputs.port_payload).context.blueprint }}
       
