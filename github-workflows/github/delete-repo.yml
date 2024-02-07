@@ -1,0 +1,47 @@
+name: Delete Repository
+
+on:
+  workflow_dispatch:
+    inputs:
+      org_name:
+        required: true
+        type: string
+      repo_name:
+        required: true
+        type: string
+      port_payload:
+        required: true
+        type: string
+jobs:
+  delete-repo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Inform starting of jira issue creation
+        uses: port-labs/port-github-action@v1
+        with:
+          clientId: ${{ secrets.PORT_CLIENT_ID }}
+          clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
+          operation: PATCH_RUN
+          runId: ${{ fromJson(inputs.port_payload).context.runId }}
+          logMessage: |
+            Deleting a github repository... ⛴️
+
+      - name: Delete Repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: 
+        run: |
+          curl -X DELETE \
+            -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/${{ inputs.org_name }}/${{ inputs.repo_name }}"
+
+      - name: Inform completion of deletion
+        uses: port-labs/port-github-action@v1
+        with:
+          clientId: ${{ secrets.PORT_CLIENT_ID }}
+          clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
+          operation: PATCH_RUN
+          runId: ${{ fromJson(inputs.port_payload).context.runId }}
+          logMessage: |
+            GitHub repository deleted! ✅
