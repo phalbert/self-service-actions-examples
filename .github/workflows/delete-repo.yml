@@ -30,11 +30,33 @@ jobs:
           REPO_NAME: ${{ fromJson(inputs.port_payload).context.entity }}
         run: |
           echo $GH_TOKEN
-          curl -X DELETE \
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X DELETE \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
-            "https://api.github.com/repos/${{ inputs.org_name }}/$REPO_NAME"
+            "https://api.github.com/repos/${{ inputs.org_name }}/$REPO_NAME")
 
+          echo "HTTP Status: $HTTP_STATUS"
+
+          # Check if HTTP_STATUS is 204 (No Content)
+          if [ $HTTP_STATUS -eq 204 ]; then
+            echo "Repository deleted successfully."
+            echo "::set-output name=delete_successful::true"
+          else
+            echo "Failed to delete repository. HTTP Status: $HTTP_STATUS"
+            echo "::set-output name=delete_successful::false"
+          fi
+
+      - name: Delete record in Port
+        if: ${{ needs.delete-repo.outputs.delete_successful == 'true' }}
+        uses: port-labs/port-github-action@v1
+        with:
+          clientId: ${{ secrets.PORT_CLIENT_ID }}
+          clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
+          operation: DELETE
+          identifier: ${{ fromJson(inputs.port_payload).context.entity }}
+          blueprint: ${{ fromJson(inputs.port_payload).context.blueprint }}
+      
       - name: Inform completion of deletion
         uses: port-labs/port-github-action@v1
         with:
@@ -44,3 +66,4 @@ jobs:
           runId: ${{ fromJson(inputs.port_payload).context.runId }}
           logMessage: |
             GitHub repository deleted! ✅
+
