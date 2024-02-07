@@ -41,14 +41,14 @@ jobs:
           # Check if HTTP_STATUS is 204 (No Content)
           if [ $HTTP_STATUS -eq 204 ]; then
             echo "Repository deleted successfully."
-            echo "::set-output name=delete_successful::true"
+            echo "delete_successful=true" >> $GITHUB_ENV
           else
             echo "Failed to delete repository. HTTP Status: $HTTP_STATUS"
-            echo "::set-output name=delete_successful::false"
+            echo "delete_successful=false" >> $GITHUB_ENV
           fi
 
       - name: Delete record in Port
-        if: ${{ needs.delete-repo.outputs.delete_successful == 'true' }}
+        if: ${{ env.delete_successful == 'true' }}
         uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
