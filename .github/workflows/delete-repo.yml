@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Inform starting of jira issue creation
+      - name: Inform starting of deletion
         uses: port-labs/port-github-action@v1
         with:
           clientId: ${{ secrets.PORT_CLIENT_ID }}
@@ -31,8 +31,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo $GH_TOKEN
           curl -X DELETE \
-            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
             "https://api.github.com/repos/${{ inputs.org_name }}/${{ inputs.repo_name }}"
 
       - name: Inform completion of deletion
