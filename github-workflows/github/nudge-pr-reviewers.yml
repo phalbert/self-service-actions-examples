@@ -1,0 +1,56 @@
+name: Nudge Pull Request Reviewers
+
+on:
+  workflow_dispatch:
+    inputs:
+      port_payload:
+        required: true
+        description: "Port's payload, including details for who triggered the action and general context (blueprint, run id, etc...)"
+        type: string
+
+jobs:
+  manage-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract Repository and PR Number
+        id: extract_info
+        run: |
+          link="${{ fromJson(inputs.port_payload).payload.entity.properties.link }}"
+          repo_info=$(echo "$link" | sed 's|https://github.com/||' | awk -F'/' '{print $1 "/" $2}')
+          pr_number=$(echo "$link" | awk -F'/' '{print $NF}')
+
+          echo "REPO_INFO=$repo_info" >> $GITHUB_ENV
+          echo "PR_NUMBER=$pr_number" >> $GITHUB_ENV
+
+      - name: Get GitHub Pull Request Reviewers
+        id: get_reviewers
+        uses: LiamPerson/get-reviews-action@v1.1.2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ env.REPO_INFO }}
+          PULL_REQUEST_ID: ${{ env.PR_NUMBER }}
+
+      - name: Send Slack Notification
+        run: |
+            reviews_json="${{ steps.get_reviewers.outputs.reviews_file_path }}"
+            reviewers=$(jq -r '.[].user.login' $reviews_json | sort -u)
+
+            echo "Reviewers: $reviewers"
+
+
+            pr_link="https://github.com/${{ env.REPO_INFO }}/pull/${{ env.PR_NUMBER }}"
+            message="Hello everyone! Just a gentle reminder to check out pull request #${{ env.PR_NUMBER }}: $pr_link. Reviewers: $reviewers" 
+
+            curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"$message\"}" ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Port
+        uses: port-labs/port-github-action@v1
+        with:
+          clientId: ${{ secrets.PORT_CLIENT_ID }}
+          clientSecret: ${{ secrets.PORT_CLIENT_SECRET }}
+          operation: PATCH_RUN
+          baseUrl: https://api.getport.io
+          runId: ${{ fromJson(inputs.port_payload).context.runId }}
+          logMessage: |
+            GitHub Action completed!
